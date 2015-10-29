@@ -121,6 +121,8 @@ int TinyShell::get_number(String *tokenp) {
 int TinyShell::execute(String *tokenp) {
   if (tokenp->equals("help")) {
     return this->do_help();
+  } else if (tokenp->equals(".")) {
+    return this->do_number_print();
   } else {
     return -1;
   }
