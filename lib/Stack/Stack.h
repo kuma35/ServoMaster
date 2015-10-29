@@ -10,25 +10,31 @@
 //#include <arduino.h>
 #include <HardwareSerial.h>
 
-#define STACK_SIZE_DEFAULT_INIT 16
+#define STACK_SIZE 16
 
 class Stack {
  private:
-  static const int _stack_size_default = STACK_SIZE_DEFAULT_INIT;
-  static const int _stack_empty = -1;
+  //static const int _size_default = STACK_SIZE_DEFAULT_INIT;
+  //static const int _empty = -1;
+  static const int _size = STACK_SIZE;
+  static const int _empty = -1;
   HardwareSerial *serial;
-  int _stack_size;
-  int _stack_buffer[STACK_SIZE_DEFAULT_INIT];
-  int _stack_pointer;
+  int _stack[STACK_SIZE];
+  int _pointer;
  public:
-  Stack();
-  int popable(int depth = 1);
+ Stack();
+  bool popable(int depth = 1);
   int pop(void);
-  int pushable(int depth = 1);
+  bool pushable(int depth = 1);
   void push(int value);
   void clear(void);
   void dump(HardwareSerial &serial);
-  void dup(void);
+  int do_depth(void);
+  int dup(void);
+  int swap(void);
+  int drop(void);
+  int over(void);
+  int rot(void);
 };
 
 #endif
