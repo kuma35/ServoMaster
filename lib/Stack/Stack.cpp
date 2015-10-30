@@ -37,16 +37,16 @@ int Stack::pop(void) {
 }
 
 
-void Stack::dump(HardwareSerial &serial) {
-  serial.print("data-stack:");
+void Stack::dump(HardwareSerial *serialp) {
+  serialp->print("data-stack:");
   if (this->popable()) {
     for (int i=0;i<=this->_pointer;i++) {
-      serial.print(this->_stack[i]);
-      serial.print(",");
+      serialp->print(this->_stack[i]);
+      serialp->print(",");
     }
-    serial.println("");
+    serialp->println("");
   } else {
-    serial.println("stack empty.");
+    serialp->println("stack empty.");
   }
 }
 
@@ -60,14 +60,19 @@ int Stack::do_depth(void) {
 /*func: ( n -- n n)
  *ret:1;OK
  *ret:0;Stack Overflow
+ *ret:-1;Stack underflow
  */
 int Stack::dup(void) {
-  if (this->pushable(1)) {
-    ++this->_pointer;
-    this->_stack[this->_pointer] = this->_stack[this->_pointer - 1];
-    return 1;
+  if (this->popable(1)) {
+    if (this->pushable(1)) {
+      ++this->_pointer;
+      this->_stack[this->_pointer] = this->_stack[this->_pointer - 1];
+      return 1;
+    } else {
+      return 0;
+    }
   } else {
-    return 0;
+    return -1;
   }
 }
 
@@ -93,6 +98,7 @@ int Stack::swap(void) {
 int Stack::drop(void) {
   if (this->popable(1)) {
     this->_pointer--;
+    return 1;
   } else {
     return 0;
   }

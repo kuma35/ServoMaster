@@ -5,9 +5,9 @@
 #include <HardwareSerial.h>
 #include "TinyShell.h"
 
-#define ERR_MSG_UNDERFLOW "Stack underflow."
-#define ERR_MSG_OVERFLOW "Stack overflow."
-#define ERR_MSG_UNKNOWN_WORD "unknow word."
+#define ERR_MSG_UNDERFLOW " Stack underflow."
+#define ERR_MSG_OVERFLOW " Stack overflow."
+#define ERR_MSG_UNKNOWN " unknow word."
 #define CRLF "\r\n"
 
 const int TinyShell::NEWLINE = 0x0D;
@@ -115,15 +115,66 @@ int TinyShell::get_number(String *tokenp) {
   }
 }
 
+String TinyShell::buffer(void) {
+  return this->_line_buffer;
+}
+
+void TinyShell::clear_buffer(void) {
+  this->_line_buffer = "";
+}
+
 // 適宜オーバーライドされたし。
-// ret:-1 unknown command
-// ret>=0 command status
+// ret:>=1; command result code is plus 100
+// ret:0; unknown word
 int TinyShell::execute(String *tokenp) {
+  int status = 100;	// execut return status. command result code is plus 100.
   if (tokenp->equals("help")) {
-    return this->do_help();
+    status += this->do_help();
   } else if (tokenp->equals(".")) {
-    return this->do_number_print();
+    status += this->do_number_print();
+  } else if (tokenp->equals("dup")) {
+    status += this->_data_stack.dup();
+    if (status == 100) {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_OVERFLOW);
+    } else if (status == 99) {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
+  } else if (tokenp->equals("swap")) {
+    status += this->_data_stack.swap();
+    if (status == 100) {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
+  } else if (tokenp->equals("drop")) {
+    status += this->_data_stack.drop();
+    if (status == 100) {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
+  } else if (tokenp->equals("over")) {
+    status += this->_data_stack.over();
+    if (status == 100) {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_OVERFLOW);
+    } else if (status == 99) {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
+  } else if (tokenp->equals("rot")) {
+    status += this->_data_stack.rot();
+    if (status == 100) {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
+  } else if (tokenp->equals("dump")) {
+    this->_data_stack.dump(this->_serial);
   } else {
-    return -1;
+    // unknown word
+    this->_serial->print(tokenp->c_str());
+    this->_serial->println(ERR_MSG_UNKNOWN);
+    status = 0;
   }
+  return status;
 }

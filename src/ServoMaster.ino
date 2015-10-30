@@ -39,7 +39,11 @@ void loop()
   if (Shell.get_line() == Shell.NEWLINE) {
     while (Shell.get_token(&token)) {
       if (Shell.get_number(&token)) {
-      } else if (Shell.execute(&token)) {
+      } else if (!Shell.execute(&token)) {
+	Serial.print(F("stop. yet exec words: "));
+	Serial.println(Shell.buffer().c_str());
+	Shell.clear_buffer();
+	break;	// stop interpreting
       }
     }
   }

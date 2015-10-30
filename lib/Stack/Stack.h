@@ -18,7 +18,6 @@ class Stack {
   //static const int _empty = -1;
   static const int _size = STACK_SIZE;
   static const int _empty = -1;
-  HardwareSerial *serial;
   int _stack[STACK_SIZE];
   int _pointer;
  public:
@@ -28,7 +27,7 @@ class Stack {
   bool pushable(int depth = 1);
   void push(int value);
   void clear(void);
-  void dump(HardwareSerial &serial);
+  void dump(HardwareSerial *serialp);
   int do_depth(void);
   int dup(void);
   int swap(void);

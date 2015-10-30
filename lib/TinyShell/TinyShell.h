@@ -21,6 +21,8 @@ class TinyShell {
   int get_line(void);
   int get_token(String *tokenp);
   int get_number(String *tokenp);
+  String buffer(void);
+  void clear_buffer(void);
   int execute(String *tokenp);
 };
 
