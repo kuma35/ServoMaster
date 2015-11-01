@@ -2,6 +2,7 @@
 // 2015/10/24 by kuma35
 
 #include <ctype.h>
+#include <EEPROM.h>
 #include <HardwareSerial.h>
 #include "TinyShell.h"
 
@@ -124,15 +125,18 @@ void TinyShell::clear_buffer(void) {
 }
 
 // 適宜オーバーライドされたし。
-// ret:>=1; command result code is plus 100
+// ret:>=1; command result code is plus 100. 1to100;NG, 101to;OK
 // ret:0; unknown word
 int TinyShell::execute(String *tokenp) {
-  int status = 100;	// execut return status. command result code is plus 100.
-  if (tokenp->equals("help")) {
+  int status = 100;	// execute return status. command result code is plus 100.
+  if (tokenp->equals("help")) {	// ( -- ) print help message.
     status += this->do_help();
-  } else if (tokenp->equals(".")) {
+  } else if (tokenp->equals(".")) {	// ( n -- ) print number.
     status += this->do_number_print();
-  } else if (tokenp->equals("dup")) {
+  } else if (tokenp->equals("cr")) {	// ( -- ) print newline.
+    this->_serial->println();
+    status += 1;
+  } else if (tokenp->equals("dup")) {	// ( n -- n n )
     status += this->_data_stack.dup();
     if (status == 100) {
       this->_serial->print(tokenp->c_str());
@@ -141,19 +145,19 @@ int TinyShell::execute(String *tokenp) {
       this->_serial->print(tokenp->c_str());
       this->_serial->println(ERR_MSG_UNDERFLOW);
     }
-  } else if (tokenp->equals("swap")) {
+  } else if (tokenp->equals("swap")) {	// ( x y -- y x)
     status += this->_data_stack.swap();
     if (status == 100) {
       this->_serial->print(tokenp->c_str());
       this->_serial->println(ERR_MSG_UNDERFLOW);
     }
-  } else if (tokenp->equals("drop")) {
+  } else if (tokenp->equals("drop")) {	// ( n -- )
     status += this->_data_stack.drop();
     if (status == 100) {
       this->_serial->print(tokenp->c_str());
       this->_serial->println(ERR_MSG_UNDERFLOW);
     }
-  } else if (tokenp->equals("over")) {
+  } else if (tokenp->equals("over")) {	// ( x y -- x y x)
     status += this->_data_stack.over();
     if (status == 100) {
       this->_serial->print(tokenp->c_str());
@@ -162,14 +166,43 @@ int TinyShell::execute(String *tokenp) {
       this->_serial->print(tokenp->c_str());
       this->_serial->println(ERR_MSG_UNDERFLOW);
     }
-  } else if (tokenp->equals("rot")) {
+  } else if (tokenp->equals("rot")) {	// ( n1 n2 n3 -- n2 n3 n1)
     status += this->_data_stack.rot();
     if (status == 100) {
       this->_serial->print(tokenp->c_str());
       this->_serial->println(ERR_MSG_UNDERFLOW);
     }
-  } else if (tokenp->equals("dump")) {
+  } else if (tokenp->equals("eeprom-write")) {	// ( n addr -- ) writing n to eeprom-addr.
+    if (this->_data_stack.popable(2)) {
+      int addr = this->_data_stack.pop();
+      int value = this->_data_stack.pop();
+      EEPROM.write(addr, (unsigned char)value);
+      // EEPROMへの書き込みには3.3ミリ秒かかります。
+      // EEPROMの書込/消去サイクルは100,000回で寿命に達します。頻繁に書き込みを行う場合は注意してください
+      status += 1;	// 1;OK, status 101
+    } else {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
+  } else if (tokenp->equals("eeprom-read")) {	// ( addr -- n ) reading n from eeprom-addr.
+    if (this->_data_stack.popable(1)) {
+      int addr = this->_data_stack.pop();
+      int value = EEPROM.read(addr);
+      if (this->_data_stack.pushable(1)) {
+	this->_data_stack.push(value);
+	status += 1;
+      } else {
+	this->_serial->print(tokenp->c_str());
+	this->_serial->println(ERR_MSG_OVERFLOW);
+	status -= 1;
+      }
+    } else {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
+  } else if (tokenp->equals("dump")) {	// ( -- ) print stack dump.
     this->_data_stack.dump(this->_serial);
+    status += 1;
   } else {
     // unknown word
     this->_serial->print(tokenp->c_str());
