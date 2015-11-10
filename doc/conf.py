@@ -256,3 +256,7 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+# ServoMaster lanugage is AVR C++
+# 2015/11/01 by kuma35 
+primary_domain = 'cpp'
