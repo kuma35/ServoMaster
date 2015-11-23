@@ -5,6 +5,7 @@
 #define _TinyShell_h_
 //#include <arduino.h>
 #include <HardwareSerial.h>
+#include <Wire.h>
 #include "Stack.h"
 
 class TinyShell {
@@ -15,14 +16,17 @@ class TinyShell {
   int do_help(void);
   int do_number_print(void);
   int isDigits(String *tokenp, int *nump);
+  int do_remote(void);
  public:
   TinyShell();
   const static int NEWLINE;
   int get_line(void);
-  int get_token(String *tokenp);
+  int get_token(String *tokenp, String sep = " ");
   int get_number(String *tokenp);
   String buffer(void);
   void clear_buffer(void);
+  int available(void);
+  void set_line(String line);
   int execute(String *tokenp);
 };
 

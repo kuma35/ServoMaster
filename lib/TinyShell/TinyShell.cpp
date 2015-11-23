@@ -58,6 +58,27 @@ int TinyShell::isDigits(String *strp, int *nump) {
 }
 
 
+// ret:1
+// ret:0
+// usage: remote" 1 2 swap over dump"
+// stack:( i2c_addr -- )
+// func: send follow string ( double-quote terminate) to i2c_addr
+int TinyShell::do_remote(void) {
+  String token;
+  if (this->get_token(&token, "\"")) {
+    int i2c_addr = this->_data_stack.pop();
+    Wire.beginTransmission(i2c_addr);
+    this->_serial->print(F("do_remote:"));
+    this->_serial->println(token.c_str());
+    Wire.write(token.c_str());
+    Wire.endTransmission();
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+
 // func: get line ( to newline ) and return last char. 
 int TinyShell::get_line(void) {
   //String &line_buffer
@@ -82,11 +103,11 @@ int TinyShell::get_line(void) {
 
 // ret:0 token end
 // ret:1 token got
-int TinyShell::get_token(String *tokenp) {
+int TinyShell::get_token(String *tokenp, String sep) {
   int index;
   this->_line_buffer.trim();
   if (!this->_line_buffer.equals("")) {
-    index = this->_line_buffer.indexOf(" ", 0);
+    index = this->_line_buffer.indexOf(sep, 0);
     if (index > -1) {
       *tokenp = this->_line_buffer.substring(0, index);
       this->_line_buffer = this->_line_buffer.substring(index+1);
@@ -122,6 +143,14 @@ String TinyShell::buffer(void) {
 
 void TinyShell::clear_buffer(void) {
   this->_line_buffer = "";
+}
+
+int TinyShell::available(void) {
+  return this->_line_buffer.equals("");
+}
+
+void TinyShell::set_line(String line) {
+  this->_line_buffer += line;
 }
 
 // 適宜オーバーライドされたし。
@@ -203,6 +232,13 @@ int TinyShell::execute(String *tokenp) {
   } else if (tokenp->equals("dump")) {	// ( -- ) print stack dump.
     this->_data_stack.dump(this->_serial);
     status += 1;
+  } else if (tokenp->equals("remote\"")) {	// ( i2c_addr -- ) send follow string to i2c_addr.
+    if (this->_data_stack.popable(1)) {
+      status += this->do_remote();
+    } else {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
   } else {
     // unknown word
     this->_serial->print(tokenp->c_str());

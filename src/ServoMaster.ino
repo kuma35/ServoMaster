@@ -26,6 +26,22 @@ Servo Servos[SERVO_VOLUME];
 TinyShell Shell;
 int I2c_addr;
 
+String Receive_buffer;
+void get_receive(int bytes) {
+  Serial.print(F("get_receive:"));
+  Serial.print(bytes);
+  Serial.print(F("bytes\""));
+  for (int index = 0; index < bytes; index++) {
+    unsigned char value = (unsigned char)(Wire.read());
+    //Receive_buffer += value;
+    Receive_buffer.concat(value);
+  }
+  //Receive_buffer += TinyShell::NEWLINE;	// terminateor
+  Receive_buffer.concat(TinyShell::NEWLINE);	// terminateor
+  Serial.print(Receive_buffer);
+  Serial.println(F(";"));
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -33,6 +49,7 @@ void setup()
   I2c_addr = EEPROM.read(EEPROM_I2C_ADDR);
   if (I2c_addr) {
     Wire.begin(I2c_addr);	// I2C slave
+    Wire.onReceive(get_receive);
     Serial.print(F("slave;"));
     Serial.println(I2c_addr);
   } else {
@@ -58,6 +75,11 @@ String token;
 
 void loop()
 {
+  int receive_index = Receive_buffer.indexOf(TinyShell::NEWLINE, 0);
+  if (!Shell.available() &&  receive_index > -1) {
+    Shell.set_line(Receive_buffer.substring(0, receive_index));
+    Receive_buffer = Receive_buffer.substring(receive_index+1);
+  }
   if (Shell.get_line() == Shell.NEWLINE) {
     while (Shell.get_token(&token)) {
       if (Shell.get_number(&token)) {
