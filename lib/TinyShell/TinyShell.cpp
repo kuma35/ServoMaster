@@ -70,9 +70,17 @@ int TinyShell::do_remote(void) {
     Wire.beginTransmission(i2c_addr);
     this->_serial->print(F("do_remote:"));
     this->_serial->println(token.c_str());
-    Wire.write(token.c_str());
-    Wire.endTransmission();
-    return 1;
+    int send_byte = Wire.write(token.c_str());
+    this->_serial->print(F("send bytes:"));
+    this->_serial->println(send_byte);
+    int error = Wire.endTransmission();
+    if (error == 0) {
+      return 1;
+    } else {
+      this->_serial->print(F("err:"));
+      this->_serial->println(error);
+      return 0;
+    }
   } else {
     return 0;
   }

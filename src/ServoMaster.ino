@@ -75,6 +75,9 @@ String token;
 
 void loop()
 {
+  Serial.print(F("Receive_buffer["));
+  Serial.print(Receive_buffer.c_str());
+  Serial.println(F("]"));
   int receive_index = Receive_buffer.indexOf(TinyShell::NEWLINE, 0);
   if (!Shell.available() &&  receive_index > -1) {
     Shell.set_line(Receive_buffer.substring(0, receive_index));
@@ -106,7 +109,7 @@ void loop()
   } else {
     j = 1500;
   }
-  delay(100);
+  delay(500);
   i += 100;
   j -= 100;
 }
