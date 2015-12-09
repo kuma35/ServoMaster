@@ -11,6 +11,7 @@
 #include <HardwareSerial.h>
 #include <Servo.h>
 #include <Wire.h>
+#include <string.h>
 
 #include "TinyShell.h"
 
@@ -20,26 +21,25 @@
 #define EEPROM_I2C_ADDR	0
 #define EEPROM_SERVO_0 1 
 #define EEPROM_SERVO_1 2
+#define RECEIVE_BUF_LEN 130
 
 Servo Servos[SERVO_VOLUME];
 
 TinyShell Shell;
 int I2c_addr;
 
-String Receive_buffer;
+char Receive_buffer[RECEIVE_BUF_LEN];
+int Receive_pointer = 0;
 void get_receive(int bytes) {
-  Serial.print(F("get_receive:"));
-  Serial.print(bytes);
-  Serial.print(F("bytes\""));
-  for (int index = 0; index < bytes; index++) {
-    unsigned char value = (unsigned char)(Wire.read());
-    //Receive_buffer += value;
-    Receive_buffer.concat(value);
+  while(Wire.available()) {
+    if (Receive_pointer < RECEIVE_BUF_LEN) {
+      Receive_buffer[Receive_pointer++] = (char)Wire.read();
+    } else {
+      return;
+    }
   }
-  //Receive_buffer += TinyShell::NEWLINE;	// terminateor
-  Receive_buffer.concat(TinyShell::NEWLINE);	// terminateor
-  Serial.print(Receive_buffer);
-  Serial.println(F(";"));
+  Receive_buffer[Receive_pointer++] = (char)TinyShell::NEWLINE;
+  Receive_buffer[Receive_pointer] = '\0';
 }
 
 void setup()
@@ -71,17 +71,29 @@ void setup()
 int i = 0;
 int j = 1500;
 
+String buffer;
 String token;
+char *rline = NULL;
+char rnewline[] = {Shell.NEWLINE, 0};
 
 void loop()
 {
-  Serial.print(F("Receive_buffer["));
-  Serial.print(Receive_buffer.c_str());
-  Serial.println(F("]"));
-  int receive_index = Receive_buffer.indexOf(TinyShell::NEWLINE, 0);
-  if (!Shell.available() &&  receive_index > -1) {
-    Shell.set_line(Receive_buffer.substring(0, receive_index));
-    Receive_buffer = Receive_buffer.substring(receive_index+1);
+  //  if (I2c_addr > 0) {
+  //    Serial.print(F("Receive_buffer["));
+  //Serial.print(Receive_buffer);
+  //    Serial.println(F("]"));
+  //  }
+  rline = strtok(Receive_buffer, rnewline);
+  if (!Shell.available() && rline != NULL && *rline != '\0') {
+    Shell.set_line(rline);
+    if (rline < Receive_buffer + RECEIVE_BUF_LEN - 1) {
+      int rlength = Receive_buffer + RECEIVE_BUF_LEN - rline;
+      memmove(Receive_buffer, rline, rlength);
+      Receive_pointer = rlength;
+    } else {
+      Receive_pointer = 0;
+    }
+    Serial.println(F("Shell.set_line"));
   }
   if (Shell.get_line() == Shell.NEWLINE) {
     while (Shell.get_token(&token)) {
@@ -109,7 +121,7 @@ void loop()
   } else {
     j = 1500;
   }
-  delay(500);
+  delay(1000);
   i += 100;
   j -= 100;
 }
