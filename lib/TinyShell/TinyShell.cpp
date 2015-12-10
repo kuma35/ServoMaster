@@ -161,6 +161,11 @@ void TinyShell::set_line(String line) {
   this->_line_buffer += line;
 }
 
+int TinyShell::is_newline(void) {
+  static const char sep[2] = {this->NEWLINE, 0};
+  return this->_line_buffer.indexOf(sep,0) > -1;
+}
+
 // 適宜オーバーライドされたし。
 // ret:>=1; command result code is plus 100. 1to100;NG, 101to;OK
 // ret:0; unknown word

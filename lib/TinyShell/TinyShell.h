@@ -27,6 +27,7 @@ class TinyShell {
   void clear_buffer(void);
   int available(void);
   void set_line(String line);
+  int is_newline(void);
   int execute(String *tokenp);
 };
 

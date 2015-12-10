@@ -95,7 +95,8 @@ void loop()
     }
     Serial.println(F("Shell.set_line"));
   }
-  if (Shell.get_line() == Shell.NEWLINE) {
+  (void)Shell.get_line();
+  if (Shell.is_newline()) {
     while (Shell.get_token(&token)) {
       if (Shell.get_number(&token)) {
       } else if (Shell.execute(&token) <= 100) {
