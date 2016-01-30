@@ -16,7 +16,7 @@
 #include "TinyShell.h"
 
 #define SERVO_VOLUME 2
-#define LF '\x0aa'
+#define LF '\x0a'
 #define ERR_STACK_OVERFLOW "Stack over flow"
 #define EEPROM_I2C_ADDR	0
 #define EEPROM_SERVO_0 1 

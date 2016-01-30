@@ -7,6 +7,7 @@
 #include <HardwareSerial.h>
 #include <Wire.h>
 #include "Stack.h"
+#include "Adafruit_MotorShield.h"
 
 class TinyShell {
  private:
