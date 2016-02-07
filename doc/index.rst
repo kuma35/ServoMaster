@@ -14,6 +14,7 @@ Contents:
    intro
    tinyshell
    stack
+   eeprom
 
 Indices and tables
 ==================

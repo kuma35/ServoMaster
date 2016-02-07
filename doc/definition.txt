@@ -1,0 +1,6 @@
+.. -*- coding:utf-8; mode: rst; -*-
+.. sphinx definition.text (ReST)
+
+.. |uno| replace:: Arduino uno R3
+.. |avrisp2| replace:: AVRISP mkII
+.. |avrdude| replace:: avrdude
