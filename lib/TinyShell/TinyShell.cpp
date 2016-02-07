@@ -11,7 +11,7 @@
 #define ERR_MSG_UNKNOWN " unknow word."
 #define CRLF "\r\n"
 
-const int TinyShell::NEWLINE = 0x0D;
+const int TinyShell::NEWLINE = 0x0A;
 
 int TinyShell::do_help(void) {
   this->_serial->print(F(" ( ... -- ... ) stack effect. ( pre command stack -- post command stack" CRLF \
