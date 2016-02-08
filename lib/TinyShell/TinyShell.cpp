@@ -226,10 +226,41 @@ int TinyShell::execute(String *tokenp) {
       this->_serial->print(tokenp->c_str());
       this->_serial->println(ERR_MSG_UNDERFLOW);
     }
+  } else if (tokenp->equals("eeprom-2write")) {	// ( 2n addr -- ) writing 2n to eeprom-addr
+    // big endian 0x1234 to 0x12, 0x34
+    if (this->_data_stack.popable(2)) {
+      int addr = this->_data_stack.pop();
+      int value = this->_data_stack.pop();
+      EEPROM.write(addr, (unsigned char)((value >> 8) & 0xff));
+      EEPROM.write(addr+1, (unsigned char)(value & 0xff));
+      // EEPROMへの書き込みには3.3ミリ秒かかります。
+      // EEPROMの書込/消去サイクルは100,000回で寿命に達します。頻繁に書き込みを行う場合は注意してください
+      status += 1;	// 1;OK, status 101
+    } else {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
   } else if (tokenp->equals("eeprom-read")) {	// ( addr -- n ) reading n from eeprom-addr.
     if (this->_data_stack.popable(1)) {
       int addr = this->_data_stack.pop();
       int value = EEPROM.read(addr);
+      if (this->_data_stack.pushable(1)) {
+	this->_data_stack.push(value);
+	status += 1;
+      } else {
+	this->_serial->print(tokenp->c_str());
+	this->_serial->println(ERR_MSG_OVERFLOW);
+	status -= 1;
+      }
+    } else {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(ERR_MSG_UNDERFLOW);
+    }
+  } else if (tokenp->equals("eeprom-2read")) {	// ( addr -- 2n ) reading 2n from eeprom-addr.
+    if (this->_data_stack.popable(1)) {
+      int addr = this->_data_stack.pop();
+      int value = EEPROM.read(addr) << 8;
+      value &= EEPROM.read(addr+1);
       if (this->_data_stack.pushable(1)) {
 	this->_data_stack.push(value);
 	status += 1;
