@@ -22,24 +22,73 @@
 #define EEPROM_SERVO_0 1 
 #define EEPROM_SERVO_1 2
 #define RECEIVE_BUF_LEN 130
+#define EEPROM_SERVO_0_MIN 3	// big endian 2 byte int. 0x1234 to 0x12,0x34
+#define EEPROM_SERVO_0_MAX 5	// big endian 2 byte int. 0x1234 to 0x12,0x34
+#define EEPROM_SERVO_1_MIN 7	// big endian 2 byte int. 0x1234 to 0x12,0x34
+#define EEPROM_SERVO_1_MAX 9	// big endian 2 byte int. 0x1234 to 0x12,0x34
 
 Servo Servos[SERVO_VOLUME];
+int Servo_min[SERVO_VOLUME];
+int Servo_max[SERVO_VOLUME];
 
 TinyShell Shell;
 int I2c_addr;
 
-char Receive_buffer[RECEIVE_BUF_LEN];
-int Receive_pointer = 0;
 void get_receive(int bytes) {
-  while(Wire.available()) {
-    if (Receive_pointer < RECEIVE_BUF_LEN) {
-      Receive_buffer[Receive_pointer++] = (char)Wire.read();
-    } else {
-      return;
+  int target_servo = -1;
+  int pulse = 0;
+  if (bytes < 1) {
+    Serial.println(F("no receive data"));
+    return;
+  }
+  while (bytes) {
+    unsigned char data = Wire.read();
+    bytes--;
+    switch (data) {
+      // command
+      // 'S',<<servo_number>>,
+      // 'W', <<num-high>>, <<num-low>>	writeMicroseconds()
+      // 'C' center
+    case 'S':
+      if (bytes < 1) {
+	Serial.println(F("no target number"));
+	bytes = 0;
+	break;
+      }
+      target_servo = (int)Wire.read();
+      bytes--;
+      break;
+    case 'W':
+      if (target_servo == -1) {
+	Serial.print(F("no target servo:"));
+	bytes = 0;
+	break;
+      }
+      if (bytes < 2) {
+	Serial.println(F("no pulse value"));
+	bytes = 0;
+	break;
+      }
+      pulse = (Wire.read() << 8)|(Wire.read());
+      Servos[target_servo].writeMicroseconds(pulse);
+      bytes -= 2;
+      break;
+    case 'C':
+      if (target_servo == -1) {
+	Serial.print(F("no target servo:"));
+	bytes = 0;
+	break;
+      }
+      Servos[target_servo].writeMicroseconds((Servo_min[target_servo] + Servo_max[target_servo]) / 2);
+      bytes--;
+      break;
+    default:
+      Serial.print(F("unknown command:"));
+      Serial.println(data, HEX);
+      bytes = 0;
+      break;
     }
   }
-  Receive_buffer[Receive_pointer++] = (char)TinyShell::NEWLINE;
-  Receive_buffer[Receive_pointer] = '\0';
 }
 
 void setup()
@@ -58,43 +107,38 @@ void setup()
   }
   int servo_pin = EEPROM.read(EEPROM_SERVO_0);
   Serial.print(F("Servo 0 to D"));
-  Serial.println(servo_pin);
+  Serial.print(servo_pin);
   Servos[0].attach(servo_pin);
+  Servo_min[0] = (EEPROM.read(EEPROM_SERVO_0_MIN) << 8) |
+    (EEPROM.read(EEPROM_SERVO_0_MIN+1));
+  Servo_max[0] = (EEPROM.read(EEPROM_SERVO_0_MAX) << 8) |
+    (EEPROM.read(EEPROM_SERVO_0_MAX+1));
+  Serial.print(F(" "));
+  Serial.print(Servo_min[0]);
+  Serial.print(F(" - "));
+  Serial.println(Servo_max[0]);
+  
   servo_pin = EEPROM.read(EEPROM_SERVO_1);
   Serial.print(F("Servo 1 to D"));
-  Serial.println(servo_pin);
+  Serial.print(servo_pin);
   Servos[1].attach(servo_pin);
+  Servo_min[1] = (EEPROM.read(EEPROM_SERVO_1_MIN) << 8) |
+    (EEPROM.read(EEPROM_SERVO_1_MIN+1));
+  Servo_max[1] = (EEPROM.read(EEPROM_SERVO_1_MAX) << 8) |
+    (EEPROM.read(EEPROM_SERVO_1_MAX+1));
+  Serial.print(F(" "));
+  Serial.print(Servo_min[1]);
+  Serial.print(F(" - "));
+  Serial.println(Servo_max[1]);
 
   Serial.print(">");
 }
 
-int i = 0;
-int j = 1500;
-
 String buffer;
 String token;
-char *rline = NULL;
-char rnewline[] = {Shell.NEWLINE, 0};
 
 void loop()
 {
-  //  if (I2c_addr > 0) {
-  //    Serial.print(F("Receive_buffer["));
-  //Serial.print(Receive_buffer);
-  //    Serial.println(F("]"));
-  //  }
-  rline = strtok(Receive_buffer, rnewline);
-  if (!Shell.available() && rline != NULL && *rline != '\0') {
-    Shell.set_line(rline);
-    if (rline < Receive_buffer + RECEIVE_BUF_LEN - 1) {
-      int rlength = Receive_buffer + RECEIVE_BUF_LEN - rline;
-      memmove(Receive_buffer, rline, rlength);
-      Receive_pointer = rlength;
-    } else {
-      Receive_pointer = 0;
-    }
-    Serial.println(F("Shell.set_line"));
-  }
   (void)Shell.get_line();
   if (Shell.is_newline()) {
     while (Shell.get_token(&token)) {
@@ -112,17 +156,4 @@ void loop()
     }
     Serial.print(F(">"));
   }
-  if (i < 1500) {
-    Servos[0].writeMicroseconds(i);
-  } else {
-    i = 0;
-  }
-  if (j > 0) {
-    Servos[1].writeMicroseconds(j);
-  } else {
-    j = 1500;
-  }
-  delay(1000);
-  i += 100;
-  j -= 100;
-}
+ }
