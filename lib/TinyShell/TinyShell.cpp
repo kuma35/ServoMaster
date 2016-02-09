@@ -9,6 +9,7 @@
 #define ERR_MSG_UNDERFLOW " Stack underflow."
 #define ERR_MSG_OVERFLOW " Stack overflow."
 #define ERR_MSG_UNKNOWN " unknow word."
+#define CR '\x0d'
 #define CRLF "\r\n"
 
 const int TinyShell::NEWLINE = 0x0A;
@@ -94,17 +95,17 @@ int TinyShell::get_line(void) {
   //Serial.print("get_line:");
   while (this->_serial->available()) {
     c[0] = (char)this->_serial->read();
-    //Serial.print(" ");
-    //Serial.print(c[0], HEX);
+    //this->_serial->print(F(","));
+    //this->_serial->print(c[0], HEX);
     this->_line_buffer += c;
-    if (c[0] == NEWLINE) {
+    if (c[0] == CR) {
       this->_serial->println();	// echo newline
       break;
     } else {
       this->_serial->print(c);	// echo
     }
   }
-  //Serial.println("");
+  //this->_serial->println("");
   return c[0];
 }
 
@@ -170,6 +171,8 @@ int TinyShell::is_newline(void) {
 // ret:>=1; command result code is plus 100. 1to100;NG, 101to;OK
 // ret:0; unknown word
 int TinyShell::execute(String *tokenp) {
+  //this->_serial->print(F("execute:"));
+  //this->_serial->println(*tokenp);
   int status = 100;	// execute return status. command result code is plus 100.
   if (tokenp->equals("help")) {	// ( -- ) print help message.
     status += this->do_help();
@@ -260,7 +263,7 @@ int TinyShell::execute(String *tokenp) {
     if (this->_data_stack.popable(1)) {
       int addr = this->_data_stack.pop();
       int value = EEPROM.read(addr) << 8;
-      value &= EEPROM.read(addr+1);
+      value |= EEPROM.read(addr+1);
       if (this->_data_stack.pushable(1)) {
 	this->_data_stack.push(value);
 	status += 1;
