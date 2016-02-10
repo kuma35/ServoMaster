@@ -10,7 +10,7 @@
 #include "Adafruit_MotorShield.h"
 
 class TinyShell {
- private:
+ protected:
   String _line_buffer;
   HardwareSerial *_serial;
   Stack _data_stack;
