@@ -32,7 +32,34 @@ Servo Servos[SERVO_VOLUME];
 int Servo_min[SERVO_VOLUME];
 int Servo_max[SERVO_VOLUME];
 
-TinyShell Shell;
+class ServoMasterShell : public TinyShell {
+ public:
+  int execute(String *tokenp);
+};
+
+int ServoMasterShell::execute(String *tokenp) {
+  int status = 100;
+  if (tokenp->equals("pulse")) {	// ( <<servo_no>>,<<microseonds>> --)	local rc servo writeMicroseconds
+    if (this->_data_stack.popable(2)) {
+      int value = this->_data_stack.pop();
+      int servo_no = this->_data_stack.pop();
+      if ( 0 <= servo_no and servo_no < SERVO_VOLUME) {
+	Servos[servo_no].writeMicroseconds(value);
+	status += 1;
+      } else {
+	this->_serial->println(F("Out of servo no."));
+      }
+    } else {
+      this->_serial->print(tokenp->c_str());
+      this->_serial->println(" Stack underflow.");
+    }
+  } else {
+    status = TinyShell::execute(tokenp);
+  }
+  return status;
+}
+
+ServoMasterShell Shell;
 int I2c_addr;
 
 void get_receive(int bytes) {
@@ -145,8 +172,8 @@ void loop()
     int last_char = Shell.get_line();
     //Serial.print(F("last_char:"));
     //Serial.print(last_char, HEX);
-    //Serial.print(F("TinyShell::NEWLINE"));
-    //Serial.print(TinyShell::NEWLINE, HEX);
+    //Serial.print(F("Shell::NEWLINE"));
+    //Serial.print(Shell::NEWLINE, HEX);
     if (last_char == CR) {
       //Serial.print(F("in CR"));
       while (Shell.get_token(&token)) {
@@ -167,7 +194,7 @@ void loop()
       }
       Serial.print(F(">"));
     } else {
-      //Serial.print(F("TinyShell::NEWLINE passed"));
+      //Serial.print(F("Shell::NEWLINE passed"));
     }
   }
  }
